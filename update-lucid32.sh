@@ -17,13 +17,13 @@ EOF
     pip -E ~ install -e git+git://github.com/pculture/mirocommunity.git@vidscraper_purge#egg=miro-community || exit 1
     pip -E ~ install -r src/miro-community/requirements.txt || exit 1
     git clone git://git.pculture.org/localtv-themes src/localtv-themes || exit 1
-    mysql -u root -e 'CREATE DATABASE miro_community;'
+    mysql -u root -e 'CREATE DATABASE miro_community CHARACTER SET utf8 COLLATE utf8_bin;'
     cd project/
-    python setup.py syncdb
-    python setup.py migrate user_profile
-    python setup.py migrate playlists
-    python setup.py migrate localtv
-    python setup.py migrate ipn
+    python manage.py syncdb
+    python manage.py migrate user_profile
+    python manage.py migrate playlists
+    python manage.py migrate localtv
+    python manage.py migrate ipn
     python manage.py loaddata /home/vagrant/src/localtv-themes/initial.json
     cd
 fi
