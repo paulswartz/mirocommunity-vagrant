@@ -12,4 +12,6 @@ Vagrant::Config.run do |config|
 
   config.vm.forward_port("web", 8000, 8000)
 
+  config.vm.provision :shell, :path => "update-lucid32.sh"
+
 end

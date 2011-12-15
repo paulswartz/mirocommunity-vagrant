@@ -1,5 +1,6 @@
 # Django settings for project project.
-DEBUG = True
+import sys
+DEBUG = ('celeryd' not in sys.argv)
 TEMPLATE_DEBUG = DEBUG
 
 ADMINS = (
@@ -16,8 +17,13 @@ DATABASES = {
         'PASSWORD': '',
         'HOST': '',
         'PORT': '',
+        'TEST_CHARSET': 'utf8',
     }
 }
+
+if 'test' in sys.argv:
+    DATABASES['default']['ENGINE'] = 'django.db.backends.sqlite3'
+    DATABASES['default']['NAME'] = ':memory:'
 
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
@@ -144,12 +150,15 @@ INSTALLED_APPS = (
     'djpagetabs',
     'djvideo',
     'socialauth',
-    'celery',
+    'djcelery',
     'haystack',
     'south',
     'localtv',
     'uploadtemplate',
     'localtv.comments',
+    'localtv_mainsite',
+    'creativecommons',
+    'django_extensions',
 )
 
 # A sample logging configuration. The only tangible logging
@@ -160,23 +169,50 @@ INSTALLED_APPS = (
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s'
+            },
+        'simple': {
+            'format': '%(levelname)s %(message)s'
+            },
+        },
     'handlers': {
+        'null': {
+            'level':'DEBUG',
+            'class':'django.utils.log.NullHandler',
+        },
         'mail_admins': {
             'level': 'ERROR',
             'class': 'django.utils.log.AdminEmailHandler'
-        }
+        },
+        'console':{
+            'level':'DEBUG',
+            'class':'logging.StreamHandler',
+            'formatter': 'simple'
+            },
     },
     'loggers': {
+        'haystack': {
+            'handlers': ['null'],
+            'level': 'DEBUG',
+            'propagate': False,
+            },
         'django.request': {
             'handlers': ['mail_admins'],
             'level': 'ERROR',
             'propagate': True,
         },
+        '': {
+            'handlers': ['null'],
+            'level': 'DEBUG',
+            'propagate': False,
+            },
     }
 }
 
 TEMPLATE_CONTEXT_PROCESSORS = (
-    "django.core.context_processors.auth",
+    "django.contrib.auth.context_processors.auth",
     "django.core.context_processors.debug",
     "django.core.context_processors.i18n",
     "django.core.context_processors.media",
@@ -252,7 +288,15 @@ def UPLOADTEMPLATE_DISABLE_UPLOAD():
 
 HAYSTACK_SEARCH_ENGINE = 'whoosh'
 HAYSTACK_SITECONF = 'project.search_sites'
-HAYSTACK_WHOOSH_PATH = '/home/vagrant/whoosh_index/'
+if 'test' in sys.argv:
+    HAYSTACK_WHOOSH_PATH = '/tmp/whoosh_index/'
+    import shutil
+    try:
+        shutil.rmtree(HAYSTACK_WHOOSH_PATH)
+    except OSError:
+        pass
+else:
+    HAYSTACK_WHOOSH_PATH = '/home/vagrant/whoosh_index/'
 
 BROKER_HOST = 'localhost'
 BROKER_PORT = 5672
@@ -261,9 +305,9 @@ BROKER_PASSWORD = 'guest'
 BROKER_VHOST = '/'
 CELERY_BACKEND = 'database'
 CELERY_RESULT_DBURI = 'mysql://root@localhost/miro_community'
-CELERYD_CONCURRENCY = 1
-CELERY_SEND_TASK_ERROR_EMAILS = True
-CELERYD_LOG_LEVEL = 'INFO'
+#CELERY_SEND_TASK_ERROR_EMAILS = True
+#CELERYD_LOG_LEVEL = 'INFO'
+CELERY_ALWAYS_EAGER = ('test' in sys.argv)
 
 FORCE_LOWERCASE_TAGS = True
 
@@ -298,6 +342,8 @@ FLOWPLAYER_SWF_URL='/swf/flowplayer.swf'
 FLOWPLAYER_CONTROLS_URL='/swf/flowplayer.controls.swf'
 FLOWPLAYER_JS_URL='/js/extern/flowplayer.min.js'
 
+SOUTH_TESTS_MIGRATE = False
+
 ### Payment-related settings
 # Use the "live" PayPal processing service, not the "sandbox".
 PAYPAL_TEST=True
@@ -306,9 +352,19 @@ PAYPAL_RECEIVER_EMAIL="donate@pculture.org"
 
 ### ZenDesk settings, related to tiers
 LOCALTV_USE_ZENDESK=False
-
+LOCALTV_DISABLE_TIERS_ENFORCEMENT = True
 ## Enable "stamps" that indicate to our management command wrapper scripts if a
 ## video has been modified since the last time we ran the managment commands.
 LOCALTV_ENABLE_CHANGE_STAMPS = True
 
 VOTING_ENABLED = True
+
+import djcelery
+djcelery.setup_loader()
+
+PROJECT_ROOT='/home/vagrant'
+import sys
+if PROJECT_ROOT not in sys.path:
+    sys.path.append(PROJECT_ROOT)
+
+LOCALTV_CELERY_USING = 'project'
