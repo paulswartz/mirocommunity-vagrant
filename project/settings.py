@@ -156,9 +156,8 @@ INSTALLED_APPS = (
     'localtv',
     'uploadtemplate',
     'localtv.comments',
-    'localtv_mainsite',
-    'creativecommons',
-    'django_extensions',
+    #'localtv_mainsite',
+    #'django_extensions',
 )
 
 # A sample logging configuration. The only tangible logging
